@@ -1,0 +1,198 @@
+═══════════════════════════════════════════════════════════════════════════════
+                              🤖 PROJET NOIA
+               Intelligence partagée du service public local
+═══════════════════════════════════════════════════════════════════════════════
+
+📦 CONTENU DU PACKAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Tous les fichiers nécessaires pour installer NOIA sur OVH sont inclus
+✅ Interface moderne et responsive
+✅ Backend sécurisé avec 10 couches de protection
+✅ Base de données avec 29 règles pré-chargées
+✅ Documentation complète en français
+
+═══════════════════════════════════════════════════════════════════════════════
+🚀 DÉMARRAGE RAPIDE (30 minutes)
+═══════════════════════════════════════════════════════════════════════════════
+
+1️⃣  OUVREZ EN PREMIER : INDEX.html
+   → Vue d'ensemble interactive de tous les fichiers
+
+2️⃣  LISEZ ENSUITE : QUICKSTART.md
+   → Guide d'installation pas à pas (30 minutes)
+
+3️⃣  SUIVEZ LA CHECKLIST :
+   ☐ Configurer sous-domaine OVH
+   ☐ Uploader les fichiers via FTP
+   ☐ Importer la base de données (phpMyAdmin)
+   ☐ Modifier config.php avec vos identifiants
+   ☐ Tester avec test.php
+   ☐ Configurer Make.com + OpenAI
+   ☐ Tester votre première question !
+
+═══════════════════════════════════════════════════════════════════════════════
+📁 STRUCTURE DES FICHIERS
+═══════════════════════════════════════════════════════════════════════════════
+
+📚 DOCUMENTATION (commencez ici !)
+  ├── INDEX.html                 ← OUVREZ EN PREMIER !
+  ├── QUICKSTART.md              ← Guide 30 minutes
+  ├── README.md                  ← Doc complète
+  ├── PACKAGE_INFO.md            ← Infos package
+  ├── ARCHITECTURE.html          ← Schéma visuel
+  └── CHANGELOG.md               ← Versions
+
+🎨 INTERFACE UTILISATEUR
+  ├── index.html                 ← Page principale
+  ├── style.css                  ← Styles modernes
+  └── script.js                  ← Logique frontend
+
+⚙️ BACKEND
+  ├── api/proxy.php              ← API sécurisée
+  ├── config/config.php          ← Configuration
+  ├── .htaccess                  ← Sécurité Apache
+  └── test.php                   ← Diagnostic
+
+💾 BASE DE DONNÉES
+  ├── database_init.sql          ← Tables + 9 règles
+  └── donnees_supplementaires.sql ← +24 règles
+
+📂 À CRÉER MANUELLEMENT
+  └── logs/                      ← Permission 755
+
+═══════════════════════════════════════════════════════════════════════════════
+⚙️ PRÉREQUIS
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Hébergement OVH Perso (PHP 7.4+, MySQL 5.7+)
+✅ Compte Make.com (gratuit ou payant)
+✅ Clé API OpenAI (GPT-4)
+✅ Accès FTP à votre hébergement
+✅ Accès phpMyAdmin
+
+═══════════════════════════════════════════════════════════════════════════════
+🔑 FICHIERS À CONFIGURER
+═══════════════════════════════════════════════════════════════════════════════
+
+1. config/config.php
+   → Remplir : DB_HOST, DB_NAME, DB_USER, DB_PASS
+   → Puis : MAKE_WEBHOOK (après config Make.com)
+
+2. index.html (optionnel)
+   → Ajouter vos communes dans le sélecteur (ligne 44-48)
+
+═══════════════════════════════════════════════════════════════════════════════
+🔒 SÉCURITÉ
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Webhook Make masqué via proxy PHP
+✅ Requêtes SQL préparées (protection injection)
+✅ Validation stricte des entrées
+✅ Rate limiting (30 req/h par IP)
+✅ Headers de sécurité (XSS, CSRF, etc.)
+✅ HTTPS obligatoire (SSL)
+✅ RGPD-compliant (aucune donnée personnelle)
+
+⚠️  IMPORTANT : Supprimez test.php après validation !
+
+═══════════════════════════════════════════════════════════════════════════════
+💰 COÛTS ESTIMÉS
+═══════════════════════════════════════════════════════════════════════════════
+
+• OVH Perso           : 2-5€/mois
+• Make.com            : Gratuit (1000 ops/mois) ou 9€/mois
+• OpenAI API (GPT-4)  : ~0,01-0,03€/requête
+
+TOTAL : 20-50€/mois pour 100-500 questions
+
+═══════════════════════════════════════════════════════════════════════════════
+✨ FONCTIONNALITÉS
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Chat conversationnel intuitif
+✅ Réponses structurées en 4 sections
+✅ Citations de sources officielles
+✅ Recherche dans base centrale + locale
+✅ Sélecteur de commune
+✅ Responsive (mobile/tablette/desktop)
+✅ Statistiques d'utilisation
+✅ Gestion d'erreurs claire
+
+═══════════════════════════════════════════════════════════════════════════════
+📊 DONNÉES INCLUSES
+═══════════════════════════════════════════════════════════════════════════════
+
+29 RÈGLES PRÉ-CHARGÉES :
+  • 8 règles RH (recrutement, rémunération, congés...)
+  • 8 règles Finances (M57, subventions, budget...)
+  • 7 règles Juridique (délibérations, police...)
+  • 6 règles Urbanisme (permis, certificats...)
+
+Sources : Légifrance, CGCT, DGCL, CDG, etc.
+
+═══════════════════════════════════════════════════════════════════════════════
+🆘 BESOIN D'AIDE ?
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Consultez le README.md (section Dépannage)
+2. Vérifiez les logs dans /logs/queries.log
+3. Testez avec test.php
+4. Forums :
+   • OVH : https://community.ovh.com/
+   • Make : https://community.make.com/
+
+═══════════════════════════════════════════════════════════════════════════════
+📝 CHECKLIST INSTALLATION
+═══════════════════════════════════════════════════════════════════════════════
+
+Phase 1 : OVH (10 min)
+☐ Créer sous-domaine noia.votre-domaine.fr
+☐ Noter identifiants MySQL
+
+Phase 2 : FTP (5 min)
+☐ Uploader tous les fichiers dans /www/noia/
+☐ Créer dossier /logs/ avec permission 755
+
+Phase 3 : Base de données (5 min)
+☐ Ouvrir phpMyAdmin
+☐ Importer database_init.sql
+☐ (Optionnel) Importer donnees_supplementaires.sql
+
+Phase 4 : Configuration (3 min)
+☐ Éditer config/config.php
+☐ Remplir DB_HOST, DB_NAME, DB_USER, DB_PASS
+
+Phase 5 : Test (2 min)
+☐ Accéder à test.php
+☐ Vérifier tous les tests ✅
+☐ Supprimer test.php
+
+Phase 6 : Make.com (10 min)
+☐ Créer compte Make
+☐ Créer scénario (Webhook → OpenAI → Response)
+☐ Copier URL webhook dans config.php
+☐ Activer scénario
+
+Phase 7 : Test final (2 min)
+☐ Ouvrir l'interface NOIA
+☐ Poser une question test
+☐ Valider la réponse !
+
+═══════════════════════════════════════════════════════════════════════════════
+🎉 PRÊT À DÉMARRER !
+═══════════════════════════════════════════════════════════════════════════════
+
+→ Ouvrez INDEX.html dans votre navigateur
+→ Suivez le guide QUICKSTART.md
+→ En 30 minutes, NOIA sera opérationnel !
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Version : 1.0.0
+Date : Octobre 2024
+Licence : Usage interne collectivités territoriales
+
+🤖 Créé avec passion pour simplifier la vie des agents territoriaux
+
+═══════════════════════════════════════════════════════════════════════════════

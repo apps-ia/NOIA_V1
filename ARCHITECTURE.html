@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture NOIA - Schéma technique</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #2563eb;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        .architecture {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            margin: 40px 0;
+        }
+        .layer {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 30px;
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border-radius: 15px;
+            border-left: 5px solid #2563eb;
+            transition: all 0.3s;
+        }
+        .layer:hover {
+            transform: translateX(10px);
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.2);
+        }
+        .layer-number {
+            background: #2563eb;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .layer-content {
+            flex: 1;
+        }
+        .layer-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+        .layer-desc {
+            color: #555;
+            line-height: 1.6;
+        }
+        .arrow {
+            text-align: center;
+            color: #2563eb;
+            font-size: 2em;
+            margin: -20px 0;
+        }
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        .tech-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .tech-card:hover {
+            border-color: #2563eb;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.15);
+        }
+        .tech-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        .tech-name {
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        .tech-desc {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .data-flow {
+            background: #eff6ff;
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 40px;
+        }
+        .flow-title {
+            font-size: 1.5em;
+            color: #1e40af;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .flow-steps {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .flow-step {
+            flex: 1;
+            min-width: 150px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #bfdbfe;
+        }
+        .flow-step-num {
+            background: #2563eb;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .security-features {
+            background: #f0fdf4;
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 40px;
+            border-left: 5px solid #10b981;
+        }
+        .security-title {
+            font-size: 1.5em;
+            color: #047857;
+            margin-bottom: 20px;
+        }
+        .security-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .security-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+        }
+        .security-icon {
+            color: #10b981;
+            font-size: 1.5em;
+        }
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+            .layer {
+                flex-direction: column;
+                text-align: center;
+            }
+            .flow-steps {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ Architecture NOIA</h1>
+        <p class="subtitle">Intelligence partagée du service public local</p>
+
+        <div class="architecture">
+            <div class="layer">
+                <div class="layer-number">1</div>
+                <div class="layer-content">
+                    <div class="layer-title">🎨 Interface Utilisateur</div>
+                    <div class="layer-desc">
+                        Interface web moderne et responsive hébergée sur OVH. Design épuré inspiré de Génial (Dalloz). 
+                        Chat conversationnel intuitif avec suggestions et réponses structurées.
+                        <br><strong>Technologies :</strong> HTML5, CSS3, JavaScript vanilla
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <div class="layer">
+                <div class="layer-number">2</div>
+                <div class="layer-content">
+                    <div class="layer-title">🔒 API Proxy (Sécurité)</div>
+                    <div class="layer-desc">
+                        Point d'entrée unique qui masque le webhook Make.com. Gère la validation des entrées, 
+                        le rate limiting (30 req/h), la protection contre les injections, et la sanitization.
+                        <br><strong>Technologies :</strong> PHP 7.4+, PDO, cURL
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <div class="layer">
+                <div class="layer-number">3</div>
+                <div class="layer-content">
+                    <div class="layer-title">💾 Bases de données MySQL</div>
+                    <div class="layer-desc">
+                        Deux tables : <strong>base_centrale</strong> (règles communes à tous) et <strong>base_locale</strong> 
+                        (documents spécifiques par commune). Recherche full-text optimisée pour des résultats rapides.
+                        <br><strong>Technologies :</strong> MySQL 5.7+, Index FULLTEXT, PDO prepared statements
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <div class="layer">
+                <div class="layer-number">4</div>
+                <div class="layer-content">
+                    <div class="layer-title">⚙️ Make.com (Orchestration)</div>
+                    <div class="layer-desc">
+                        Scénario d'automatisation qui reçoit la question + résultats de recherche, 
+                        les transmet à OpenAI avec un prompt structuré, et renvoie la réponse formatée.
+                        <br><strong>Modules :</strong> Webhook → OpenAI → Webhook Response
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <div class="layer">
+                <div class="layer-number">5</div>
+                <div class="layer-content">
+                    <div class="layer-title">🤖 OpenAI GPT-4</div>
+                    <div class="layer-desc">
+                        Intelligence artificielle qui analyse les sources documentaires et génère une réponse 
+                        structurée avec : références juridiques, analyse, application pratique, et proposition d'acte.
+                        <br><strong>Modèle :</strong> GPT-4-turbo ou GPT-4o
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow">↑</div>
+
+            <div class="layer">
+                <div class="layer-number">6</div>
+                <div class="layer-content">
+                    <div class="layer-title">📊 Réponse structurée</div>
+                    <div class="layer-desc">
+                        La réponse remonte par Make → Proxy → Interface utilisateur. 
+                        Affichage en HTML formaté avec sections claires et références citées.
+                        <br><strong>Format :</strong> HTML structuré avec classes CSS spécifiques
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="data-flow">
+            <div class="flow-title">📈 Flux de données détaillé</div>
+            <div class="flow-steps">
+                <div class="flow-step">
+                    <div class="flow-step-num">1</div>
+                    <strong>Question</strong><br>
+                    <small>Saisie utilisateur</small>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-step-num">2</div>
+                    <strong>Validation</strong><br>
+                    <small>Proxy PHP</small>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-step-num">3</div>
+                    <strong>Recherche</strong><br>
+                    <small>MySQL FULLTEXT</small>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-step-num">4</div>
+                    <strong>Orchestration</strong><br>
+                    <small>Make.com</small>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-step-num">5</div>
+                    <strong>IA</strong><br>
+                    <small>OpenAI GPT-4</small>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-step-num">6</div>
+                    <strong>Affichage</strong><br>
+                    <small>HTML formaté</small>
+                </div>
+            </div>
+        </div>
+
+        <h2 style="margin-top: 60px; text-align: center; color: #2563eb;">🔧 Stack technologique</h2>
+        <div class="tech-stack">
+            <div class="tech-card">
+                <div class="tech-icon">🖥️</div>
+                <div class="tech-name">OVH Hébergement Perso</div>
+                <div class="tech-desc">PHP 7.4+, MySQL 5.7+, Apache, SSL Let's Encrypt</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-icon">🎨</div>
+                <div class="tech-name">Frontend</div>
+                <div class="tech-desc">HTML5, CSS3 (Grid/Flexbox), JavaScript ES6+</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-icon">🔧</div>
+                <div class="tech-name">Backend</div>
+                <div class="tech-desc">PHP 7.4+, PDO, cURL, JSON</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-icon">💾</div>
+                <div class="tech-name">Base de données</div>
+                <div class="tech-desc">MySQL 5.7+, Index FULLTEXT, Charset UTF-8MB4</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-icon">⚙️</div>
+                <div class="tech-name">Automatisation</div>
+                <div class="tech-desc">Make.com (webhooks, scénarios)</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-icon">🤖</div>
+                <div class="tech-name">Intelligence</div>
+                <div class="tech-desc">OpenAI API (GPT-4-turbo/GPT-4o)</div>
+            </div>
+        </div>
+
+        <div class="security-features">
+            <div class="security-title">🔒 Mesures de sécurité implémentées</div>
+            <div class="security-list">
+                <div class="security-item">
+                    <div class="security-icon">✅</div>
+                    <div>Masquage webhook via proxy PHP</div>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">✅</div>
+                    <div>Requêtes SQL préparées (PDO)</div>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">✅</div>
+                    <div>Validation stricte des entrées</div>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">✅</div>
+                    <div>Rate limiting (30 req/h/IP)</div>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">✅</div>
+                    <div>Sanitization HTML (liste blanche)</div>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">✅</div>
+                    <div>Headers de sécurité (CSP, XSS)</div>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">✅</div>
+                    <div>Protection .htaccess</div>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">✅</div>
+                    <div>HTTPS obligatoire (SSL)</div>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">✅</div>
+                    <div>Logs anonymisés</div>
+                </div>
+                <div class="security-item">
+                    <div class="security-icon">✅</div>
+                    <div>Aucune donnée personnelle</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 60px; padding: 30px; background: #fef3c7; border-radius: 15px; border-left: 5px solid #f59e0b;">
+            <h3 style="color: #d97706; margin-bottom: 15px;">💡 Points clés de l'architecture</h3>
+            <ul style="color: #555; line-height: 2;">
+                <li><strong>Stateless :</strong> Aucune session, aucune conversation stockée</li>
+                <li><strong>Scalable :</strong> Peut gérer plusieurs communes indépendamment</li>
+                <li><strong>Modulaire :</strong> Chaque composant peut évoluer séparément</li>
+                <li><strong>Sécurisé :</strong> 10 couches de protection des données</li>
+                <li><strong>RGPD-compliant :</strong> Aucune donnée personnelle traitée</li>
+                <li><strong>Performant :</strong> Temps de réponse moyen ~2-3 secondes</li>
+                <li><strong>Économique :</strong> Hébergement mutualisé + API usage-based</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 40px; text-align: center; color: #666;">
+            <p style="font-size: 0.9em;">
+                <strong>Version :</strong> 1.0.0 | 
+                <strong>Date :</strong> Octobre 2024 | 
+                <strong>Licence :</strong> Usage interne collectivités territoriales
+            </p>
+            <p style="margin-top: 15px; font-size: 1.1em; color: #2563eb;">
+                🤖 Créé pour simplifier la vie des agents territoriaux
+            </p>
+        </div>
+    </div>
+</body>
+</html>
