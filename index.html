@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NOIA - Intelligence partagée du service public local">
+    <meta name="robots" content="noindex, nofollow">
+    <title>NOIA - Assistant Réglementaire</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- En-tête -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <span class="logo-icon">🤖</span>
+                    <span class="logo-text">NOIA</span>
+                </h1>
+                <p class="tagline">Intelligence partagée du service public local</p>
+            </div>
+        </header>
+
+        <!-- Sélecteur de commune -->
+        <div class="commune-selector">
+            <label for="commune">Commune :</label>
+            <select id="commune" name="commune">
+                <option value="general">Général (toutes communes)</option>
+                <option value="commune_a">Commune A</option>
+                <option value="commune_b">Commune B</option>
+                <!-- Ajoutez vos communes ici -->
+            </select>
+        </div>
+
+        <!-- Zone de chat -->
+        <div class="chat-container" id="chatContainer">
+            <!-- Message de bienvenue -->
+            <div class="message assistant-message welcome-message">
+                <div class="message-icon">🤖</div>
+                <div class="message-content">
+                    <p><strong>Bonjour !</strong> Je suis NOIA, votre assistant spécialisé en réglementation des collectivités territoriales.</p>
+                    <p>Posez-moi vos questions sur :</p>
+                    <ul>
+                        <li>📊 Finances publiques (M57, budget, comptabilité)</li>
+                        <li>👥 Ressources humaines (statut, rémunération, congés)</li>
+                        <li>⚖️ Juridique (délibérations, marchés publics, RGPD)</li>
+                        <li>🏗️ Urbanisme (permis de construire, PLU, certificats)</li>
+                    </ul>
+                    <p class="hint">💡 Exemple : "Comment imputer un broyeur en M57 ?"</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Indicateur de chargement -->
+        <div class="loading-indicator" id="loadingIndicator" style="display: none;">
+            <div class="loading-spinner"></div>
+            <span>NOIA réfléchit...</span>
+        </div>
+
+        <!-- Zone de saisie -->
+        <div class="input-container">
+            <form id="questionForm">
+                <div class="input-wrapper">
+                    <textarea
+                        id="questionInput"
+                        placeholder="Posez votre question ici..."
+                        rows="2"
+                        maxlength="500"
+                        required
+                    ></textarea>
+                    <button type="submit" id="sendButton" class="send-button" title="Envoyer (Ctrl+Entrée)">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+                <div class="input-footer">
+                    <span class="char-counter" id="charCounter">0/500</span>
+                    <span class="hint-text">Appuyez sur Ctrl+Entrée pour envoyer</span>
+                </div>
+            </form>
+        </div>
+
+        <!-- Pied de page -->
+        <footer class="footer">
+            <p>
+                <span class="footer-info">Version 2.0.0 - Intégration OpenAI directe</span>
+                <span class="footer-separator">|</span>
+                <span class="footer-info">RGPD-compliant - Aucune donnée personnelle stockée</span>
+            </p>
+        </footer>
+    </div>
+
+    <!-- Notification toast -->
+    <div class="toast" id="toast" style="display: none;"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -2,12 +2,14 @@
 
 Interface d'intelligence documentaire et réglementaire dédiée au service public local.
 
+**Version 2.0.0 - Intégration OpenAI directe (Make.com supprimé)**
+
 ## 📋 Table des matières
 
 1. [Vue d'ensemble](#vue-densemble)
 2. [Prérequis](#prérequis)
 3. [Installation](#installation)
-4. [Configuration Make.com](#configuration-makecom)
+4. [Configuration OpenAI](#configuration-openai)
 5. [Structure du projet](#structure-du-projet)
 6. [Sécurité](#sécurité)
 7. [Maintenance](#maintenance)
@@ -22,28 +24,29 @@ NOIA est un assistant intelligent qui aide les agents territoriaux à :
 - Accéder rapidement à des références officielles (Légifrance, DGCL, etc.)
 - Obtenir des réponses contextualisées basées sur des sources fiables
 
-**Architecture :**
+**Architecture simplifiée (v2.0.0) :**
 ```
-Interface Web (OVH) → API PHP (Proxy) → Make.com → OpenAI → Réponse structurée
+Interface Web (OVH) → API PHP (Proxy) → OpenAI API → Réponse structurée
                            ↓
                     Bases de données MySQL (OVH)
                     - Base centrale (commune)
                     - Base locale (par commune)
 ```
 
+**Nouveauté v2.0.0 :** Make.com a été supprimé ! L'API OpenAI est maintenant appelée directement depuis PHP, ce qui simplifie l'architecture et réduit les coûts.
+
 ---
 
 ## ✅ Prérequis
 
 ### Hébergement OVH Perso
-- PHP 7.4 ou supérieur
+- PHP 7.4 ou supérieur avec extension cURL
 - MySQL 5.7 ou supérieur
 - Accès FTP/SSH
 - Certificat SSL (recommandé)
 
 ### Services externes
-- Compte Make.com (gratuit ou payant)
-- Clé API OpenAI (GPT-4 recommandé)
+- Clé API OpenAI (GPT-4 ou GPT-3.5-turbo recommandé)
 
 ---
 
@@ -105,101 +108,53 @@ Interface Web (OVH) → API PHP (Proxy) → Make.com → OpenAI → Réponse str
 Modifiez le fichier `/config/config.php` avec vos informations :
 
 ```php
+// Configuration de la base de données
 define('DB_HOST', 'mysql47.perso.ovh.net');    // Votre serveur MySQL
 define('DB_NAME', 'votre_base');                 // Nom de votre base
 define('DB_USER', 'votre_utilisateur');          // Utilisateur MySQL
 define('DB_PASS', 'votre_mot_de_passe');         // Mot de passe MySQL
-define('MAKE_WEBHOOK', 'https://hook.eu1.make.com/xxxxx'); // Voir étape 5
+
+// Configuration OpenAI (NOUVEAU - Plus besoin de Make.com!)
+define('OPENAI_API_KEY', 'sk-votre-cle-api-openai');  // Votre clé API OpenAI
+define('OPENAI_MODEL', 'gpt-4-turbo');                 // ou 'gpt-4o', 'gpt-3.5-turbo'
+define('OPENAI_MAX_TOKENS', 1500);                     // Limite de tokens
+define('OPENAI_TEMPERATURE', 0.7);                     // 0-2 (plus bas = plus déterministe)
 ```
 
-**Sécurité :** Assurez-vous que le fichier config.php n'est pas accessible via le web (protégé par .htaccess).
+**Sécurité :** Le fichier config.php est protégé par .htaccess et n'est pas accessible via le web.
 
 ---
 
-## ⚙️ Configuration Make.com
+## ⚙️ Configuration OpenAI
 
-### Étape 5 : Créer le scénario Make
+### Étape 5 : Obtenir votre clé API OpenAI
 
-1. Connectez-vous à [Make.com](https://www.make.com)
-2. Créez un nouveau scénario
-3. Ajoutez les modules suivants :
+1. Créez un compte sur [OpenAI Platform](https://platform.openai.com/)
+2. Allez dans **API Keys** : https://platform.openai.com/api-keys
+3. Cliquez sur **Create new secret key**
+4. Copiez la clé (format : `sk-...`)
+5. Collez-la dans `config.php` (variable `OPENAI_API_KEY`)
 
-#### Module 1 : Webhook (déclencheur)
-- Type : **Custom Webhook**
-- Créez un nouveau webhook
-- Copiez l'URL générée (format : `https://hook.eu1.make.com/xxxxx`)
-- Collez cette URL dans `config.php` (variable `MAKE_WEBHOOK`)
+**Important :**
+- La clé API est confidentielle, ne la partagez jamais
+- Configurez des limites de dépense sur OpenAI Platform
+- Surveillez votre usage sur : https://platform.openai.com/usage
 
-#### Module 2 : OpenAI - Create a Completion
-- Connexion : ajoutez votre clé API OpenAI
-- Modèle : `gpt-4-turbo` ou `gpt-4o`
-- Messages :
-  ```
-  System: Tu es NOIA, assistant spécialisé dans la réglementation des collectivités françaises.
-  
-  CONTEXTE :
-  - Commune : {{1.commune}}
-  - Question : {{1.question}}
-  
-  SOURCES DISPONIBLES :
-  Base centrale (règles communes) : {{1.central_results}}
-  Base locale (documents spécifiques) : {{1.local_results}}
-  
-  CONSIGNES :
-  1. Structure ta réponse avec ces sections (format HTML) :
-     <div class="structured-response">
-       <div class="response-section">
-         <div class="section-title">📚 Références juridiques</div>
-         <div class="section-content">...</div>
-       </div>
-       <div class="response-section">
-         <div class="section-title">🔍 Analyse réglementaire</div>
-         <div class="section-content">...</div>
-       </div>
-       <div class="response-section">
-         <div class="section-title">✅ Application pratique</div>
-         <div class="section-content">...</div>
-       </div>
-       <div class="response-section">
-         <div class="section-title">📄 Proposition d'acte</div>
-         <div class="section-content">...</div>
-       </div>
-     </div>
-  
-  2. Cite systématiquement tes sources (Légifrance, CGCT, etc.)
-  3. Si manque d'info locale, indique clairement "Aucune donnée spécifique trouvée pour cette commune"
-  4. Utilise un ton professionnel mais accessible
-  5. Maximum 500 mots pour la clarté
-  
-  User: {{1.question}}
-  ```
+### Choix du modèle
 
-#### Module 3 : HTTP - Make a Request (réponse)
-- URL : `https://noia.votre-domaine.fr/noia/api/response_handler.php` (optionnel)
-- Méthode : POST
-- Body :
-  ```json
-  {
-    "response": "{{2.choices[0].message.content}}",
-    "commune": "{{1.commune}}"
-  }
-  ```
+| Modèle | Prix (approx.) | Qualité | Vitesse | Recommandation |
+|--------|---------------|---------|---------|----------------|
+| **gpt-4-turbo** | 0,01-0,03€/requête | Excellente | Moyenne | Production |
+| **gpt-4o** | 0,005-0,015€/requête | Excellente | Rapide | Production |
+| **gpt-3.5-turbo** | 0,001-0,002€/requête | Bonne | Très rapide | Tests/Dev |
 
-**Note :** Pour une version simplifiée, vous pouvez connecter directement le module OpenAI au webhook de sortie.
+### Test de la configuration
 
-4. **Activez le scénario** (bouton ON en bas à gauche)
+Accédez à : `https://noia.votre-domaine.fr/`
 
-### Test du scénario
+Posez une question test : *"Comment imputer un broyeur en M57 ?"*
 
-Dans Make, cliquez sur "Run once" et testez avec :
-```json
-{
-  "question": "Comment imputer un broyeur en M57 ?",
-  "commune": "commune_a",
-  "central_results": [],
-  "local_results": []
-}
-```
+Si tout fonctionne, vous devriez recevoir une réponse structurée en 2-3 secondes !
 
 ---
 
@@ -233,24 +188,28 @@ noia/
 
 ### Mesures implémentées
 
-1. **Masquage du webhook Make** via proxy PHP
+1. **Protection clé API OpenAI** : stockée dans config.php, protégé par .htaccess
 2. **Validation stricte** des entrées utilisateur
-3. **Rate limiting** : 30 requêtes/heure par IP
+3. **Rate limiting** : 30 requêtes/heure par IP (configurable)
 4. **Protection SQL injection** : requêtes préparées (PDO)
-5. **Headers de sécurité** : CSP, X-Frame-Options, etc.
+5. **Headers de sécurité** : CSP, X-Frame-Options, X-XSS-Protection, etc.
 6. **Sanitization HTML** : liste blanche de balises autorisées
-7. **Protection .htaccess** : fichiers de config non accessibles
+7. **Protection .htaccess** : fichiers de config et logs non accessibles
+8. **Timeout API** : limite de 30 secondes pour les appels OpenAI
 
 ### Recommandations
 
 ✅ **À FAIRE :**
 - Activer le HTTPS (certificat SSL Let's Encrypt gratuit sur OVH)
 - Modifier les identifiants par défaut dans `config.php`
+- Configurer des limites de dépense sur OpenAI Platform
 - Restreindre les permissions fichiers (755 pour dossiers, 644 pour fichiers)
 - Surveiller les logs régulièrement
+- Désactiver DEBUG_MODE en production
 
 ❌ **À NE PAS FAIRE :**
-- Ne jamais exposer le webhook Make directement
+- Ne jamais exposer votre clé API OpenAI publiquement
+- Ne jamais commiter config.php avec de vraies clés dans Git
 - Ne pas stocker de données personnelles sensibles
 - Ne pas désactiver les validations de sécurité
 
@@ -336,20 +295,43 @@ grep "response_time" queries.log | awk -F'"' '{sum+=$8; count++} END {print sum/
 **Diagnostic :**
 1. Ouvrez la console développeur (F12) → onglet Network
 2. Vérifiez si l'appel à `/api/proxy.php` réussit (code 200)
-3. Si erreur 500 : consultez les logs PHP d'OVH
+3. Si erreur 500 : consultez les logs PHP d'OVH ou activez DEBUG_MODE temporairement
 4. Si erreur 404 : vérifiez le chemin du fichier `proxy.php`
 
-**Testez Make.com :**
-1. Allez sur Make.com → votre scénario
-2. Vérifiez l'historique d'exécution
-3. Testez manuellement le scénario
+**Vérifiez la clé OpenAI :**
+1. Testez votre clé API sur : https://platform.openai.com/playground
+2. Vérifiez que vous avez du crédit disponible
+3. Vérifiez que la clé est correctement copiée dans config.php (commence par `sk-`)
+
+**Vérifiez les logs :**
+- Consultez `/logs/queries.log` pour voir les erreurs
+
+### Problème : Erreur OpenAI (HTTP 401)
+
+**Cause :** Clé API invalide ou expirée
+
+**Solutions :**
+1. Vérifiez que OPENAI_API_KEY dans config.php est correct
+2. Générez une nouvelle clé sur https://platform.openai.com/api-keys
+3. Vérifiez que votre compte OpenAI a du crédit
+
+### Problème : Erreur OpenAI (HTTP 429)
+
+**Cause :** Limite de débit OpenAI atteinte
+
+**Solutions :**
+1. Attendez quelques minutes
+2. Vérifiez vos limites sur https://platform.openai.com/account/limits
+3. Passez à un plan payant si nécessaire
 
 ### Problème : Réponse incohérente de NOIA
 
 **Solutions :**
 1. Vérifiez la qualité des données dans vos tables SQL
-2. Améliorez le prompt OpenAI dans Make
-3. Augmentez les limites de recherche (actuellement 5 résultats)
+2. Ajustez OPENAI_TEMPERATURE dans config.php (valeur plus basse = plus déterministe)
+3. Augmentez OPENAI_MAX_TOKENS si les réponses sont tronquées
+4. Améliorez le prompt système dans proxy.php (ligne 158)
+5. Augmentez les limites de recherche SQL (actuellement 5 résultats par base)
 
 ---
 
@@ -388,6 +370,27 @@ Projet NOIA - Usage interne collectivités territoriales
 
 ---
 
-**Version :** 1.0.0  
-**Date :** Octobre 2024  
-**Dernière mise à jour :** Ce README
+**Version :** 2.0.0
+**Date :** Octobre 2024
+**Dernière mise à jour :** Migration vers intégration OpenAI directe (Make.com supprimé)
+
+## 📝 Changelog v2.0.0
+
+### Nouveautés
+- ✅ **Intégration OpenAI directe** : Plus besoin de Make.com !
+- ✅ **Architecture simplifiée** : Moins de services externes = moins de points de défaillance
+- ✅ **Coûts réduits** : Suppression de l'abonnement Make.com
+- ✅ **Meilleure performance** : Réduction de la latence (un service en moins dans la chaîne)
+- ✅ **Plus de contrôle** : Configuration fine du modèle OpenAI (température, max_tokens, etc.)
+- ✅ **Logs améliorés** : Meilleure traçabilité des requêtes
+- ✅ **Code open** : Tout le code est maintenant dans le repository
+
+### Migration depuis v1.0.0
+Si vous utilisez la version 1.0.0 avec Make.com :
+1. Téléchargez les nouveaux fichiers (config.php, proxy.php, script.js)
+2. Obtenez une clé API OpenAI
+3. Mettez à jour config.php avec vos identifiants
+4. Supprimez le scénario Make.com (optionnel)
+5. Testez la nouvelle version
+
+**Note :** La base de données reste identique, aucune migration SQL nécessaire.
