@@ -12,6 +12,8 @@ header('X-Frame-Options: DENY');
 header('X-XSS-Protection: 1; mode=block');
 
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/web_search.php';
+require_once __DIR__ . '/embeddings.php';
 
 // CORS
 if (ALLOWED_ORIGINS !== '*') {
@@ -150,7 +152,102 @@ function searchDatabase($question, $commune) {
 }
 
 /**
- * Appel direct à l'API OpenAI
+ * Définition des fonctions disponibles pour Function Calling
+ */
+function getAvailableFunctions() {
+    return [
+        [
+            'name' => 'search_official_websites',
+            'description' => 'Recherche d\'informations sur les sites officiels (Légifrance, service-public.fr, DGCL, DGFIP, CNFPT, emploi-collectivites.fr) pour obtenir des références juridiques précises, des articles de loi, des décrets, ou des informations officielles.',
+            'parameters' => [
+                'type' => 'object',
+                'properties' => [
+                    'query' => [
+                        'type' => 'string',
+                        'description' => 'La requête de recherche (ex: "FCTVA communes article loi", "grille indiciaire adjoint administratif 2024")'
+                    ],
+                    'topic' => [
+                        'type' => 'string',
+                        'enum' => ['fctva', 'comptabilite', 'm57', 'rh', 'juridique', 'deliberation', 'marches_publics', 'general'],
+                        'description' => 'Le sujet pour cibler les sites pertinents'
+                    ]
+                ],
+                'required' => ['query']
+            ]
+        ],
+        [
+            'name' => 'search_document_base',
+            'description' => 'Recherche dans la base documentaire locale (documents uploadés par la commune : délibérations, notes, règlements, etc.) en utilisant la recherche sémantique par embeddings.',
+            'parameters' => [
+                'type' => 'object',
+                'properties' => [
+                    'query' => [
+                        'type' => 'string',
+                        'description' => 'La question ou recherche (ex: "règlement intérieur cantine", "délibération budget 2024")'
+                    ]
+                ],
+                'required' => ['query']
+            ]
+        ]
+    ];
+}
+
+/**
+ * Exécuter un appel de fonction
+ */
+function executeFunctionCall($function_name, $arguments) {
+    switch ($function_name) {
+        case 'search_official_websites':
+            if (ENABLE_WEB_SEARCH) {
+                $query = $arguments['query'] ?? '';
+                $topic = $arguments['topic'] ?? 'general';
+
+                $engine = new WebSearchEngine();
+                $results = $engine->searchOfficialSources($query, $topic);
+
+                // Récupérer le contenu des 3 premiers résultats
+                $detailed_results = [];
+                foreach (array_slice($results, 0, 3) as $result) {
+                    $content = $engine->fetchPageContent($result['url'], 2000);
+                    $detailed_results[] = [
+                        'title' => $result['title'],
+                        'url' => $result['url'],
+                        'source' => $result['official_site'] ?? 'web',
+                        'content' => $content ?? 'Contenu non disponible'
+                    ];
+                }
+
+                return json_encode([
+                    'success' => true,
+                    'topic' => $topic,
+                    'results_count' => count($detailed_results),
+                    'results' => $detailed_results
+                ]);
+            }
+            return json_encode(['success' => false, 'error' => 'Recherche web désactivée']);
+
+        case 'search_document_base':
+            if (ENABLE_RAG) {
+                $query = $arguments['query'] ?? '';
+
+                $manager = new EmbeddingsManager();
+                $similar_docs = $manager->searchSimilar($query, 5);
+
+                return json_encode([
+                    'success' => true,
+                    'results_count' => count($similar_docs),
+                    'documents' => $similar_docs
+                ]);
+            }
+            return json_encode(['success' => false, 'error' => 'RAG désactivé']);
+
+        default:
+            return json_encode(['success' => false, 'error' => 'Fonction inconnue']);
+    }
+}
+
+/**
+ * Appel direct à l'API OpenAI avec Function Calling
  */
 function callOpenAI($question, $commune, $search_results) {
     // Préparer le contexte pour OpenAI
@@ -270,24 +367,78 @@ CONSIGNES TECHNIQUES :
 - Ton : formel, administratif, cadre A de la fonction publique territoriale
 ";
 
-    // Préparer la requête OpenAI
-    $data = [
-        'model' => OPENAI_MODEL,
-        'messages' => [
-            [
-                'role' => 'system',
-                'content' => $system_prompt
-            ],
-            [
-                'role' => 'user',
-                'content' => $question
-            ]
+    // Préparer les messages initiaux
+    $messages = [
+        [
+            'role' => 'system',
+            'content' => $system_prompt
         ],
-        'max_tokens' => OPENAI_MAX_TOKENS,
-        'temperature' => OPENAI_TEMPERATURE
+        [
+            'role' => 'user',
+            'content' => $question
+        ]
     ];
 
-    // Appel à l'API OpenAI
+    // Configuration de la requête avec Function Calling
+    $data = [
+        'model' => OPENAI_MODEL,
+        'messages' => $messages,
+        'max_tokens' => OPENAI_MAX_TOKENS,
+        'temperature' => OPENAI_TEMPERATURE,
+        'tools' => array_map(function($func) {
+            return ['type' => 'function', 'function' => $func];
+        }, getAvailableFunctions()),
+        'tool_choice' => 'auto' // GPT décide s'il a besoin de chercher
+    ];
+
+    // Premier appel à OpenAI
+    $response_data = makeOpenAIRequest($data);
+
+    // Vérifier si GPT veut appeler une fonction
+    $max_iterations = 5; // Limiter les appels en boucle
+    $iteration = 0;
+
+    while (isset($response_data['choices'][0]['message']['tool_calls']) && $iteration < $max_iterations) {
+        $tool_calls = $response_data['choices'][0]['message']['tool_calls'];
+
+        // Ajouter le message de l'assistant avec les tool_calls
+        $messages[] = $response_data['choices'][0]['message'];
+
+        // Exécuter chaque fonction appelée
+        foreach ($tool_calls as $tool_call) {
+            $function_name = $tool_call['function']['name'];
+            $function_args = json_decode($tool_call['function']['arguments'], true);
+
+            // Exécuter la fonction
+            $function_result = executeFunctionCall($function_name, $function_args);
+
+            // Ajouter le résultat aux messages
+            $messages[] = [
+                'role' => 'tool',
+                'tool_call_id' => $tool_call['id'],
+                'content' => $function_result
+            ];
+        }
+
+        // Nouvel appel à OpenAI avec les résultats des fonctions
+        $data['messages'] = $messages;
+        $response_data = makeOpenAIRequest($data);
+
+        $iteration++;
+    }
+
+    // Extraire la réponse finale
+    if (!isset($response_data['choices'][0]['message']['content'])) {
+        throw new Exception("Réponse OpenAI invalide");
+    }
+
+    return $response_data['choices'][0]['message']['content'];
+}
+
+/**
+ * Fonction helper pour faire une requête OpenAI
+ */
+function makeOpenAIRequest($data) {
     $ch = curl_init('https://api.openai.com/v1/chat/completions');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
@@ -296,7 +447,7 @@ CONSIGNES TECHNIQUES :
         'Content-Type: application/json',
         'Authorization: Bearer ' . OPENAI_API_KEY
     ]);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 60); // Augmenté pour les recherches
 
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -313,11 +464,11 @@ CONSIGNES TECHNIQUES :
 
     $result = json_decode($response, true);
 
-    if (!isset($result['choices'][0]['message']['content'])) {
-        throw new Exception("Réponse OpenAI invalide");
+    if (!$result) {
+        throw new Exception("Réponse JSON invalide");
     }
 
-    return $result['choices'][0]['message']['content'];
+    return $result;
 }
 
 /**

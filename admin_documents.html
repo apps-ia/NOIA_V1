@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOIA - Gestion Documentaire</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        header {
+            margin-bottom: 30px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .upload-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input[type="file"],
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .documents-list {
+            margin-top: 30px;
+        }
+
+        .documents-list h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filters select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .document-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .document-item:hover {
+            background: #e9ecef;
+        }
+
+        .document-info {
+            flex: 1;
+        }
+
+        .document-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .document-meta {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-right: 5px;
+        }
+
+        .badge-category {
+            background: #667eea;
+            color: white;
+        }
+
+        .badge-type {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 NOIA - Gestion Documentaire</h1>
+            <p class="subtitle">Système RAG avec recherche sémantique par embeddings OpenAI</p>
+        </header>
+
+        <div id="message"></div>
+
+        <!-- Statistiques -->
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="stat-total">0</div>
+                <div class="stat-label">Documents</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="stat-indexed">0</div>
+                <div class="stat-label">Indexés</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="stat-size">0 MB</div>
+                <div class="stat-label">Taille totale</div>
+            </div>
+        </div>
+
+        <!-- Upload -->
+        <div class="upload-section">
+            <h2>📤 Uploader un nouveau document</h2>
+            <form id="uploadForm">
+                <div class="form-group">
+                    <label for="document">Fichier (PDF, DOCX, TXT, MD, ODT - max 10 MB)</label>
+                    <input type="file" id="document" name="document" accept=".pdf,.docx,.txt,.md,.odt" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Catégorie</label>
+                    <select id="category" name="category" required>
+                        <option value="general">Général</option>
+                        <option value="fctva">FCTVA</option>
+                        <option value="comptabilite">Comptabilité</option>
+                        <option value="m57">M57</option>
+                        <option value="rh">Ressources Humaines</option>
+                        <option value="juridique">Juridique</option>
+                        <option value="deliberation">Délibérations</option>
+                        <option value="marches_publics">Marchés Publics</option>
+                        <option value="reglements">Règlements</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="commune">Commune (optionnel)</label>
+                    <select id="commune" name="commune">
+                        <option value="general">Toutes les communes</option>
+                        <!-- Ajouter les communes dynamiquement si besoin -->
+                    </select>
+                </div>
+
+                <button type="submit" class="btn" id="uploadBtn">
+                    📤 Uploader et indexer
+                </button>
+            </form>
+        </div>
+
+        <!-- Liste des documents -->
+        <div class="documents-list">
+            <h2>📂 Documents disponibles</h2>
+
+            <div class="filters">
+                <select id="filterCategory" onchange="loadDocuments()">
+                    <option value="">Toutes les catégories</option>
+                    <option value="fctva">FCTVA</option>
+                    <option value="comptabilite">Comptabilité</option>
+                    <option value="m57">M57</option>
+                    <option value="rh">Ressources Humaines</option>
+                    <option value="juridique">Juridique</option>
+                    <option value="deliberation">Délibérations</option>
+                    <option value="marches_publics">Marchés Publics</option>
+                    <option value="reglements">Règlements</option>
+                </select>
+
+                <select id="filterCommune" onchange="loadDocuments()">
+                    <option value="">Toutes les communes</option>
+                    <option value="general">Général</option>
+                </select>
+
+                <button class="btn" onclick="loadDocuments()">🔄 Actualiser</button>
+            </div>
+
+            <div id="documentsList">
+                <p style="text-align: center; color: #666;">Chargement...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_ENDPOINT = './api/doc_manager.php';
+
+        // Charger les documents au démarrage
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDocuments();
+        });
+
+        // Gestion de l'upload
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const btn = document.getElementById('uploadBtn');
+            const fileInput = document.getElementById('document');
+            const category = document.getElementById('category').value;
+            const commune = document.getElementById('commune').value;
+
+            if (!fileInput.files[0]) {
+                showMessage('Veuillez sélectionner un fichier', 'error');
+                return;
+            }
+
+            // Vérifier la taille
+            if (fileInput.files[0].size > 10 * 1024 * 1024) {
+                showMessage('Fichier trop volumineux (max 10 MB)', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Upload et indexation en cours...';
+
+            const formData = new FormData();
+            formData.append('document', fileInput.files[0]);
+            formData.append('category', category);
+            formData.append('commune', commune);
+
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(
+                        `✅ Document uploadé avec succès ! ${result.indexation.chunks_indexed}/${result.indexation.chunks_total} chunks indexés.`,
+                        'success'
+                    );
+                    document.getElementById('uploadForm').reset();
+                    loadDocuments();
+                } else {
+                    showMessage('❌ Erreur : ' + result.error, 'error');
+                }
+
+            } catch (error) {
+                showMessage('❌ Erreur réseau : ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '📤 Uploader et indexer';
+            }
+        });
+
+        // Charger la liste des documents
+        async function loadDocuments() {
+            const category = document.getElementById('filterCategory').value;
+            const commune = document.getElementById('filterCommune').value;
+
+            let url = API_ENDPOINT;
+            const params = [];
+
+            if (category) params.push(`category=${encodeURIComponent(category)}`);
+            if (commune) params.push(`commune=${encodeURIComponent(commune)}`);
+
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success) {
+                    displayDocuments(result.documents);
+                    updateStats(result.documents);
+                } else {
+                    showMessage('Erreur lors du chargement', 'error');
+                }
+
+            } catch (error) {
+                document.getElementById('documentsList').innerHTML =
+                    '<p style="text-align: center; color: #dc3545;">Erreur de chargement</p>';
+            }
+        }
+
+        // Afficher les documents
+        function displayDocuments(documents) {
+            const container = document.getElementById('documentsList');
+
+            if (documents.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666;">Aucun document trouvé</p>';
+                return;
+            }
+
+            container.innerHTML = documents.map(doc => `
+                <div class="document-item">
+                    <div class="document-info">
+                        <div class="document-title">📄 ${doc.original_name}</div>
+                        <div class="document-meta">
+                            <span class="badge badge-category">${doc.category}</span>
+                            <span class="badge badge-type">${doc.type.toUpperCase()}</span>
+                            <span>Commune: ${doc.commune}</span> •
+                            <span>Uploadé: ${new Date(doc.uploaded_at).toLocaleDateString('fr-FR')}</span>
+                        </div>
+                    </div>
+                    <button class="btn-delete" onclick="deleteDocument(${doc.id}, '${doc.original_name}')">
+                        🗑️ Supprimer
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Mettre à jour les statistiques
+        function updateStats(documents) {
+            const total = documents.length;
+            const indexed = documents.length; // Tous sont indexés après upload
+            const totalSize = documents.reduce((sum, doc) => sum + (parseInt(doc.size) || 0), 0);
+            const sizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-indexed').textContent = indexed;
+            document.getElementById('stat-size').textContent = sizeMB + ' MB';
+        }
+
+        // Supprimer un document
+        async function deleteDocument(docId, docName) {
+            if (!confirm(`Supprimer le document "${docName}" ?\n\nCette action est irréversible.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ doc_id: docId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('✅ Document supprimé avec succès', 'success');
+                    loadDocuments();
+                } else {
+                    showMessage('❌ Erreur : ' + result.error, 'error');
+                }
+
+            } catch (error) {
+                showMessage('❌ Erreur réseau : ' + error.message, 'error');
+            }
+        }
+
+        // Afficher un message
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            messageDiv.style.display = 'block';
+
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
