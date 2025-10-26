@@ -2,11 +2,19 @@
 
 **Version 2.0.0 - Intégration OpenAI directe**
 
-Installation en **moins de 20 minutes** !
+---
+
+## 🔄 Mise à jour ou nouvelle installation ?
+
+### ⚠️ Vous avez déjà NOIA v1.0.0 installé ?
+
+👉 **Ce guide est pour une NOUVELLE installation**
+
+**Pour migrer depuis v1.0.0 → v2.0.0** : Consultez le [Guide de migration](MIGRATION.md)
 
 ---
 
-## ⏱️ Checklist d'installation (20 min)
+## ⏱️ Nouvelle installation (20 min)
 
 ### ☐ 1. Préparer OVH (5 min)
 

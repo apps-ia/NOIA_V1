@@ -4,7 +4,28 @@ Interface d'intelligence documentaire et réglementaire dédiée au service publ
 
 **Version 2.0.0 - Intégration OpenAI directe (Make.com supprimé)**
 
+---
+
+## 🔄 Mise à jour depuis v1.0.0 ?
+
+**⚠️ Vous avez déjà NOIA v1.0.0 installé avec Make.com ?**
+
+👉 **Consultez le [Guide de migration v1.0.0 → v2.0.0](MIGRATION.md)**
+
+Ce guide vous explique :
+- Quels fichiers remplacer
+- Comment obtenir une clé OpenAI
+- Comment modifier config.php
+- Comment tester la migration
+- Comment désactiver Make.com
+
+⏱️ **Temps de migration : 15 minutes**
+
+---
+
 ## 📋 Table des matières
+
+**Pour une nouvelle installation** :
 
 1. [Vue d'ensemble](#vue-densemble)
 2. [Prérequis](#prérequis)
