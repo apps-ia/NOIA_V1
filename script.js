@@ -1,271 +1,266 @@
 /**
  * NOIA - Frontend Logic
- * Version: 2.0.0 (Direct OpenAI Integration)
+ * Version: 2.0.0 (Direct OpenAI Integration with DEMO interface)
  */
 
 // Configuration
 const API_ENDPOINT = './api/proxy.php';
 
-// Éléments DOM
-const questionForm = document.getElementById('questionForm');
-const questionInput = document.getElementById('questionInput');
-const sendButton = document.getElementById('sendButton');
-const chatContainer = document.getElementById('chatContainer');
-const loadingIndicator = document.getElementById('loadingIndicator');
+// Elements
+const chatLog = document.getElementById('chatLog');
+const chatInput = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
 const communeSelect = document.getElementById('commune');
-const charCounter = document.getElementById('charCounter');
-const toast = document.getElementById('toast');
+const todayCountEl = document.getElementById('todayCount');
+const avgTimeEl = document.getElementById('avgTime');
 
-// État
-let isProcessing = false;
+// Stats
+let messageCount = 0;
+let responseTimes = [];
 
 /**
- * Initialisation
+ * Auto-resize textarea
  */
-document.addEventListener('DOMContentLoaded', () => {
-    // Compteur de caractères
-    questionInput.addEventListener('input', updateCharCounter);
+chatInput.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
 
-    // Auto-resize du textarea
-    questionInput.addEventListener('input', autoResize);
+/**
+ * Send message on button click
+ */
+sendBtn.addEventListener('click', sendMessage);
 
-    // Soumettre avec Ctrl+Entrée
-    questionInput.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.key === 'Enter') {
-            e.preventDefault();
-            questionForm.dispatchEvent(new Event('submit'));
-        }
+/**
+ * Send message on Enter (Shift+Enter for new line)
+ */
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+/**
+ * Use a suggestion chip
+ */
+function useSuggestion(el) {
+  chatInput.value = el.textContent;
+  chatInput.focus();
+  sendMessage();
+}
+
+/**
+ * Send message to NOIA
+ */
+async function sendMessage() {
+  const question = chatInput.value.trim();
+  if (!question || sendBtn.disabled) return;
+
+  // Clear empty state
+  const emptyState = chatLog.querySelector('.empty-state');
+  if (emptyState) emptyState.remove();
+
+  // Add user message
+  addMessage(question, 'user');
+
+  // Clear input
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+
+  // Show typing indicator
+  const typingId = addTypingIndicator();
+  sendBtn.disabled = true;
+  chatInput.disabled = true;
+
+  // Get commune
+  const commune = communeSelect.value;
+
+  // Record start time
+  const startTime = Date.now();
+
+  try {
+    // Call API
+    const response = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        question: question,
+        commune: commune
+      })
     });
 
-    // Gérer la soumission du formulaire
-    questionForm.addEventListener('submit', handleSubmit);
+    const data = await response.json();
 
-    // Focus sur l'input au chargement
-    questionInput.focus();
-});
+    // Remove typing indicator
+    removeTypingIndicator(typingId);
 
-/**
- * Mise à jour du compteur de caractères
- */
-function updateCharCounter() {
-    const length = questionInput.value.length;
-    charCounter.textContent = `${length}/500`;
-
-    if (length > 450) {
-        charCounter.style.color = '#e74c3c';
-    } else {
-        charCounter.style.color = '#7f8c8d';
-    }
-}
-
-/**
- * Auto-resize du textarea
- */
-function autoResize() {
-    questionInput.style.height = 'auto';
-    questionInput.style.height = Math.min(questionInput.scrollHeight, 150) + 'px';
-}
-
-/**
- * Afficher une notification toast
- */
-function showToast(message, type = 'info') {
-    toast.textContent = message;
-    toast.className = `toast toast-${type}`;
-    toast.style.display = 'block';
-
-    setTimeout(() => {
-        toast.style.display = 'none';
-    }, 5000);
-}
-
-/**
- * Ajouter un message au chat
- */
-function addMessage(content, isUser = false) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
-
-    const iconDiv = document.createElement('div');
-    iconDiv.className = 'message-icon';
-    iconDiv.textContent = isUser ? '👤' : '🤖';
-
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
-
-    if (isUser) {
-        contentDiv.textContent = content;
-    } else {
-        // Pour les réponses de l'assistant, permettre le HTML
-        contentDiv.innerHTML = sanitizeHTML(content);
+    if (!response.ok) {
+      throw new Error(data.error || `Erreur HTTP ${response.status}`);
     }
 
-    messageDiv.appendChild(iconDiv);
-    messageDiv.appendChild(contentDiv);
-    chatContainer.appendChild(messageDiv);
+    if (data.success) {
+      // Add bot response
+      addMessage(data.response, 'bot', true);
 
-    // Scroll vers le bas
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+      // Update stats
+      const responseTime = Date.now() - startTime;
+      responseTimes.push(responseTime);
+      messageCount++;
+      todayCountEl.textContent = messageCount;
 
-    return messageDiv;
+      const avgTime = responseTimes.reduce((a,b) => a+b, 0) / responseTimes.length;
+      avgTimeEl.textContent = `~${(avgTime/1000).toFixed(1)}s`;
+
+    } else {
+      throw new Error(data.error || 'Erreur inconnue');
+    }
+
+  } catch (error) {
+    console.error('Erreur:', error);
+
+    // Remove typing indicator
+    removeTypingIndicator(typingId);
+
+    // Show error message
+    let errorMessage = 'Une erreur est survenue. Veuillez réessayer.';
+
+    if (error.message.includes('429')) {
+      errorMessage = 'Trop de requêtes. Veuillez patienter quelques minutes.';
+    } else if (error.message.includes('401')) {
+      errorMessage = 'Erreur d\'authentification OpenAI. Vérifiez votre clé API.';
+    } else if (error.message.includes('Fetch') || error.message.includes('NetworkError')) {
+      errorMessage = 'Erreur de connexion. Vérifiez votre connexion internet.';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    addMessage(
+      `<div class="error-message">❌ <strong>Erreur :</strong> ${errorMessage}</div>`,
+      'bot',
+      true
+    );
+
+  } finally {
+    sendBtn.disabled = false;
+    chatInput.disabled = false;
+    chatInput.focus();
+  }
 }
 
 /**
- * Sanitize HTML (liste blanche de balises)
+ * Add message to chat
+ */
+function addMessage(content, type, isStructured = false) {
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `message ${type}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'message-avatar';
+  avatar.textContent = type === 'user' ? 'U' : 'N';
+
+  const contentDiv = document.createElement('div');
+  contentDiv.className = 'message-content';
+
+  if (isStructured && type === 'bot') {
+    // Sanitize HTML for bot responses
+    contentDiv.innerHTML = sanitizeHTML(content);
+  } else {
+    contentDiv.textContent = content;
+  }
+
+  msgDiv.appendChild(avatar);
+  msgDiv.appendChild(contentDiv);
+  chatLog.appendChild(msgDiv);
+
+  // Scroll to bottom
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+/**
+ * Add typing indicator
+ */
+function addTypingIndicator() {
+  const id = 'typing-' + Date.now();
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'message bot';
+  msgDiv.id = id;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'message-avatar';
+  avatar.textContent = 'N';
+
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'message-content';
+  typingDiv.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+
+  msgDiv.appendChild(avatar);
+  msgDiv.appendChild(typingDiv);
+  chatLog.appendChild(msgDiv);
+  chatLog.scrollTop = chatLog.scrollHeight;
+
+  return id;
+}
+
+/**
+ * Remove typing indicator
+ */
+function removeTypingIndicator(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+/**
+ * Sanitize HTML (allow only safe tags)
  */
 function sanitizeHTML(html) {
-    const allowedTags = ['div', 'p', 'strong', 'em', 'ul', 'li', 'br', 'span'];
-    const allowedClasses = ['structured-response', 'response-section', 'section-title', 'section-content'];
+  const allowedTags = ['div', 'p', 'strong', 'em', 'ul', 'li', 'br', 'span'];
+  const allowedClasses = ['structured-response', 'response-section', 'section-title', 'section-content', 'error-message'];
 
-    // Créer un élément temporaire
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
+  // Create temporary element
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
 
-    // Parcourir tous les éléments
-    const elements = temp.getElementsByTagName('*');
-    for (let i = elements.length - 1; i >= 0; i--) {
-        const element = elements[i];
+  // Process all elements
+  const elements = temp.getElementsByTagName('*');
+  for (let i = elements.length - 1; i >= 0; i--) {
+    const element = elements[i];
 
-        // Supprimer si la balise n'est pas autorisée
-        if (!allowedTags.includes(element.tagName.toLowerCase())) {
-            element.parentNode.removeChild(element);
-            continue;
-        }
-
-        // Nettoyer les attributs
-        const attrs = element.attributes;
-        for (let j = attrs.length - 1; j >= 0; j--) {
-            const attr = attrs[j];
-            if (attr.name === 'class') {
-                // Garder uniquement les classes autorisées
-                const classes = attr.value.split(' ').filter(c => allowedClasses.includes(c));
-                if (classes.length > 0) {
-                    element.className = classes.join(' ');
-                } else {
-                    element.removeAttribute('class');
-                }
-            } else {
-                // Supprimer tous les autres attributs
-                element.removeAttribute(attr.name);
-            }
-        }
+    // Remove if tag not allowed
+    if (!allowedTags.includes(element.tagName.toLowerCase())) {
+      element.parentNode.removeChild(element);
+      continue;
     }
 
-    return temp.innerHTML;
-}
-
-/**
- * Afficher/masquer l'indicateur de chargement
- */
-function setLoading(loading) {
-    isProcessing = loading;
-    loadingIndicator.style.display = loading ? 'flex' : 'none';
-    sendButton.disabled = loading;
-    questionInput.disabled = loading;
-
-    if (!loading) {
-        questionInput.focus();
-    }
-}
-
-/**
- * Gérer la soumission du formulaire
- */
-async function handleSubmit(e) {
-    e.preventDefault();
-
-    if (isProcessing) return;
-
-    const question = questionInput.value.trim();
-    if (!question) return;
-
-    const commune = communeSelect.value;
-
-    // Ajouter le message de l'utilisateur
-    addMessage(question, true);
-
-    // Réinitialiser le formulaire
-    questionInput.value = '';
-    updateCharCounter();
-    autoResize();
-
-    // Afficher le chargement
-    setLoading(true);
-
-    try {
-        // Appel à l'API
-        const response = await fetch(API_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                question: question,
-                commune: commune
-            })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || `Erreur HTTP ${response.status}`);
-        }
-
-        if (data.success) {
-            // Ajouter la réponse de l'assistant
-            addMessage(data.response, false);
-
-            // Afficher les statistiques (optionnel)
-            if (data.sources_count) {
-                const totalSources = data.sources_count.central + data.sources_count.local;
-                if (totalSources > 0) {
-                    console.log(`Sources utilisées: ${totalSources} (${data.sources_count.central} centrales, ${data.sources_count.local} locales)`);
-                }
-            }
+    // Clean attributes
+    const attrs = element.attributes;
+    for (let j = attrs.length - 1; j >= 0; j--) {
+      const attr = attrs[j];
+      if (attr.name === 'class') {
+        // Keep only allowed classes
+        const classes = attr.value.split(' ').filter(c => allowedClasses.includes(c));
+        if (classes.length > 0) {
+          element.className = classes.join(' ');
         } else {
-            throw new Error(data.error || 'Erreur inconnue');
+          element.removeAttribute('class');
         }
-
-    } catch (error) {
-        console.error('Erreur:', error);
-
-        // Message d'erreur utilisateur
-        let errorMessage = 'Une erreur est survenue. Veuillez réessayer.';
-
-        if (error.message.includes('429')) {
-            errorMessage = 'Trop de requêtes. Veuillez patienter quelques minutes.';
-        } else if (error.message.includes('Fetch')) {
-            errorMessage = 'Erreur de connexion. Vérifiez votre connexion internet.';
-        }
-
-        addMessage(
-            `<div class="error-message">❌ <strong>Erreur :</strong> ${errorMessage}</div>`,
-            false
-        );
-
-        showToast(errorMessage, 'error');
-
-    } finally {
-        setLoading(false);
+      } else {
+        // Remove all other attributes
+        element.removeAttribute(attr.name);
+      }
     }
+  }
+
+  return temp.innerHTML;
 }
 
 /**
- * Gestion du changement de commune
+ * Focus input on load
  */
-communeSelect.addEventListener('change', () => {
-    const commune = communeSelect.options[communeSelect.selectedIndex].text;
-    console.log(`Commune sélectionnée: ${commune}`);
-});
+chatInput.focus();
 
-/**
- * Statistiques d'utilisation (optionnel)
- */
-function getMessageCount() {
-    const messages = chatContainer.querySelectorAll('.user-message');
-    return messages.length;
-}
-
-// Debug info (à supprimer en production)
-console.log('NOIA v2.0.0 - Intégration OpenAI directe');
-console.log('Make.com a été supprimé avec succès!');
+// Debug info
+console.log('NOIA v2.0.0 - OpenAI Direct Integration');
+console.log('Interface: DEMO style with sidebar');
