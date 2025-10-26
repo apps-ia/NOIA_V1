@@ -1,0 +1,37 @@
+# NOIA - Git Ignore
+# Ne pas commiter les fichiers sensibles
+
+# Configuration (contient les clés API)
+config/config.php
+
+# Logs
+logs/
+*.log
+
+# Rate limiting
+rate_limit.json
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backups
+*.bak
+*.backup
+*.sql
+
+# Environnement PHP
+vendor/
+composer.lock
+
+# Variables d'environnement
+.env
+.env.local
+.env.*.local
