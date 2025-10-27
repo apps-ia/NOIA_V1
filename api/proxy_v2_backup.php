@@ -1,14 +1,9 @@
 <?php
 /**
  * NOIA - API Proxy (Direct OpenAI Integration)
- * Version: 4.0.0 - Phase 2 : Intelligence & Précision Légale
+ * Version: 2.0.0
  *
- * Nouvelles fonctionnalités Phase 2 :
- * - Pré-analyse intelligente (détection quorum, FCTVA, IFSE, M57, etc.)
- * - Consultation automatique des legal_facts (règles validées priorité 10/10)
- * - Forçage de la consultation des sources officielles selon le contexte
- * - Logging avancé (coûts OpenAI, tokens, sources utilisées)
- * - System prompt amélioré avec legal_facts injectés
+ * Remplace Make.com par un appel direct à l'API OpenAI
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -19,8 +14,6 @@ header('X-XSS-Protection: 1; mode=block');
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/web_search.php';
 require_once __DIR__ . '/embeddings.php';
-require_once __DIR__ . '/pre_analysis.php';
-require_once __DIR__ . '/legal_facts_manager.php';
 
 // CORS
 if (ALLOWED_ORIGINS !== '*') {
@@ -255,14 +248,8 @@ function executeFunctionCall($function_name, $arguments) {
 
 /**
  * Appel direct à l'API OpenAI avec Function Calling
- *
- * @param string $question Question posée
- * @param string $commune Commune concernée
- * @param array $search_results Résultats de la recherche DB
- * @param array $pre_analysis Résultat de la pré-analyse (Phase 2)
- * @param array $legal_facts Règles légales validées (Phase 2)
  */
-function callOpenAI($question, $commune, $search_results, $pre_analysis = [], $legal_facts = []) {
+function callOpenAI($question, $commune, $search_results) {
     // Préparer le contexte pour OpenAI
     $central_context = '';
     if (!empty($search_results['central'])) {
@@ -288,41 +275,8 @@ function callOpenAI($question, $commune, $search_results, $pre_analysis = [], $l
         }
     }
 
-    // ========================================================================
-    // PHASE 2 : INJECTION DES LEGAL FACTS (RÈGLES VALIDÉES - PRIORITÉ 10/10)
-    // ========================================================================
-    $legal_facts_section = '';
-    if (!empty($legal_facts)) {
-        $legal_facts_section = LegalFactsManager::formatForPrompt($legal_facts);
-    }
-
-    // ========================================================================
-    // PHASE 2 : CONTEXTE DE PRÉ-ANALYSE
-    // ========================================================================
-    $pre_analysis_context = '';
-    if (!empty($pre_analysis)) {
-        $pre_analysis_context = "\n🔍 CONTEXTE DÉTECTÉ PAR PRÉ-ANALYSE :\n";
-        $pre_analysis_context .= "- Catégorie principale : " . strtoupper($pre_analysis['main_category']) . "\n";
-        $pre_analysis_context .= "- Priorité : {$pre_analysis['priority']}/10\n";
-        $pre_analysis_context .= "- Question critique : " . ($pre_analysis['is_critical'] ? 'OUI ⚠️' : 'Non') . "\n";
-
-        if (!empty($pre_analysis['detected_contexts'])) {
-            $pre_analysis_context .= "- Contextes détectés : ";
-            $contexts = array_map(function($c) {
-                return $c['name'];
-            }, $pre_analysis['detected_contexts']);
-            $pre_analysis_context .= implode(', ', $contexts) . "\n";
-        }
-
-        if ($pre_analysis['force_official_sources']) {
-            $pre_analysis_context .= "⚠️ SOURCES OFFICIELLES OBLIGATOIRES\n";
-        }
-
-        $pre_analysis_context .= "\n";
-    }
-
     // Construire le prompt système
-    $system_prompt = $legal_facts_section . $pre_analysis_context . "Tu es NOIA_Collectivités, un assistant IA de l'intelligence partagée du service public local.
+    $system_prompt = "Tu es NOIA_Collectivités, un assistant IA de l'intelligence partagée du service public local.
 
 RÔLE : Tu incarnes le rôle de Secrétaire Générale de Mairie numérique, spécialisé dans la gestion administrative, financière, juridique et RH des communes de moins de 3 500 habitants.
 
@@ -425,16 +379,6 @@ CONSIGNES TECHNIQUES :
         ]
     ];
 
-    // ========================================================================
-    // PHASE 2 : DÉTERMINATION INTELLIGENTE DU TOOL_CHOICE
-    // ========================================================================
-    $tool_choice = 'auto'; // Par défaut, GPT décide
-
-    if (!empty($pre_analysis)) {
-        // Si contexte critique ou force_official_sources = true, forcer la recherche
-        $tool_choice = PreAnalysis::determineToolChoice($pre_analysis);
-    }
-
     // Configuration de la requête avec Function Calling
     $data = [
         'model' => OPENAI_MODEL,
@@ -444,7 +388,7 @@ CONSIGNES TECHNIQUES :
         'tools' => array_map(function($func) {
             return ['type' => 'function', 'function' => $func];
         }, getAvailableFunctions()),
-        'tool_choice' => $tool_choice
+        'tool_choice' => 'auto' // GPT décide s'il a besoin de chercher
     ];
 
     // Premier appel à OpenAI
@@ -488,28 +432,7 @@ CONSIGNES TECHNIQUES :
         throw new Exception("Réponse OpenAI invalide");
     }
 
-    // ========================================================================
-    // PHASE 2 : EXTRACTION DES MÉTRIQUES OPENAI (tokens, coûts)
-    // ========================================================================
-    $usage = $response_data['usage'] ?? [];
-    $metrics = [
-        'prompt_tokens' => $usage['prompt_tokens'] ?? 0,
-        'completion_tokens' => $usage['completion_tokens'] ?? 0,
-        'total_tokens' => $usage['total_tokens'] ?? 0,
-        'model' => OPENAI_MODEL,
-        'function_calls_count' => $iteration
-    ];
-
-    // Calcul approximatif des coûts (tarifs GPT-4 Turbo)
-    // Input: $0.01 / 1K tokens, Output: $0.03 / 1K tokens
-    $cost_input = ($metrics['prompt_tokens'] / 1000) * 0.01;
-    $cost_output = ($metrics['completion_tokens'] / 1000) * 0.03;
-    $metrics['estimated_cost_usd'] = round($cost_input + $cost_output, 4);
-
-    return [
-        'content' => $response_data['choices'][0]['message']['content'],
-        'metrics' => $metrics
-    ];
+    return $response_data['choices'][0]['message']['content'];
 }
 
 /**
@@ -549,7 +472,7 @@ function makeOpenAIRequest($data) {
 }
 
 /**
- * Logging basique (maintenu pour compatibilité)
+ * Logging
  */
 function logRequest($question, $commune, $response_time, $success) {
     if (!ENABLE_LOGGING) return;
@@ -564,29 +487,6 @@ function logRequest($question, $commune, $response_time, $success) {
     ];
 
     file_put_contents(LOG_FILE, json_encode($log_entry) . "\n", FILE_APPEND);
-}
-
-/**
- * Logging avancé Phase 2 (métriques détaillées)
- */
-function logAdvancedMetrics($data) {
-    if (!ENABLE_LOGGING) return;
-
-    // Ajouter timestamp et IP
-    $data['timestamp'] = date('Y-m-d H:i:s');
-    $data['ip'] = $_SERVER['REMOTE_ADDR'];
-
-    // Fichier de log séparé pour les métriques avancées
-    $advanced_log_file = __DIR__ . '/../logs/metrics_phase2.log';
-
-    // Créer le dossier logs si nécessaire
-    $log_dir = dirname($advanced_log_file);
-    if (!file_exists($log_dir)) {
-        mkdir($log_dir, 0755, true);
-    }
-
-    // Logger en JSON pour analyse ultérieure
-    file_put_contents($advanced_log_file, json_encode($data) . "\n", FILE_APPEND);
 }
 
 // ============================================================================
@@ -619,59 +519,12 @@ try {
     // 3. Recherche dans la base de données
     $search_results = searchDatabase($question, $commune);
 
-    // ========================================================================
-    // PHASE 2 : PRÉ-ANALYSE INTELLIGENTE
-    // ========================================================================
-    $pre_analysis = PreAnalysis::analyze($question);
-
-    // ========================================================================
-    // PHASE 2 : CONSULTATION DES LEGAL FACTS
-    // ========================================================================
-    $legal_facts = [];
-    if ($pre_analysis['force_legal_facts'] || $pre_analysis['is_critical']) {
-        try {
-            $legal_manager = new LegalFactsManager();
-            $legal_facts = $legal_manager->smartSearch(
-                $pre_analysis['legal_facts_tags'],
-                $question
-            );
-        } catch (Exception $e) {
-            if (DEBUG_MODE) {
-                error_log("Legal Facts error: " . $e->getMessage());
-            }
-            // Continue sans legal facts en cas d'erreur
-        }
-    }
-
-    // 4. Appel à OpenAI avec pré-analyse et legal facts
-    $ai_result = callOpenAI($question, $commune, $search_results, $pre_analysis, $legal_facts);
-
-    // Extraire le contenu et les métriques
-    $ai_response = $ai_result['content'];
-    $openai_metrics = $ai_result['metrics'];
+    // 4. Appel à OpenAI
+    $ai_response = callOpenAI($question, $commune, $search_results);
 
     // 5. Réponse réussie
     $response_time = round((microtime(true) - $start_time) * 1000);
-
-    // ========================================================================
-    // PHASE 2 : LOGGING AVANCÉ
-    // ========================================================================
     logRequest($question, $commune, $response_time, true);
-
-    // Log détaillé Phase 2 (si activé)
-    logAdvancedMetrics([
-        'question' => substr($question, 0, 100),
-        'commune' => $commune,
-        'response_time_ms' => $response_time,
-        'pre_analysis' => PreAnalysis::getAnalysisLog($pre_analysis),
-        'legal_facts' => LegalFactsManager::getSummaryForLog($legal_facts),
-        'openai_metrics' => $openai_metrics,
-        'sources' => [
-            'central' => count($search_results['central']),
-            'local' => count($search_results['local']),
-            'legal_facts' => count($legal_facts)
-        ]
-    ]);
 
     http_response_code(200);
     echo json_encode([
@@ -681,14 +534,8 @@ try {
         'response_time' => $response_time,
         'sources_count' => [
             'central' => count($search_results['central']),
-            'local' => count($search_results['local']),
-            'legal_facts' => count($legal_facts)
-        ],
-        // Phase 2 : métriques optionnelles (affichées si DEBUG_MODE)
-        'metrics' => DEBUG_MODE ? [
-            'pre_analysis' => $pre_analysis,
-            'openai' => $openai_metrics
-        ] : null
+            'local' => count($search_results['local'])
+        ]
     ]);
 
 } catch (Exception $e) {
