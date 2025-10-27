@@ -316,6 +316,13 @@ kbd{background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:2px 6p
       </div>
     </div>
 
+    <!-- User Info -->
+    <div class="user-info" id="userInfo" style="display:none; margin-bottom:20px; padding:12px; background:linear-gradient(135deg,#f0f9ff,#e0f2fe); border-radius:10px;">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">Connecté en tant que</div>
+      <div style="font-weight:700; color:var(--accent); font-size:14px;" id="userName"></div>
+      <div style="font-size:12px; color:var(--muted); margin-top:2px;" id="userRole"></div>
+    </div>
+
     <nav class="nav">
       <button class="active">
         <span class="icon">💬</span>
@@ -332,6 +339,10 @@ kbd{background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:2px 6p
       <button>
         <span class="icon">⚙️</span>
         <span>Paramètres</span>
+      </button>
+      <button id="logoutBtn" style="margin-top:12px; color:#dc2626; border-top:1px solid #f1f5f9; padding-top:12px;">
+        <span class="icon">🚪</span>
+        <span>Déconnexion</span>
       </button>
     </nav>
 
@@ -405,6 +416,70 @@ kbd{background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:2px 6p
     </div>
   </main>
 </div>
+
+<!-- Authentication Script -->
+<script>
+/**
+ * Authentication Check & User Display
+ * Vérifie si l'utilisateur est connecté au chargement de la page
+ */
+(async function() {
+  try {
+    // Vérifier l'authentification
+    const response = await fetch('./api/auth/check.php', {
+      method: 'GET',
+      credentials: 'include'
+    });
+
+    const result = await response.json();
+
+    if (!result.success || !result.authenticated) {
+      // Non authentifié - rediriger vers login
+      window.location.href = 'login.html';
+      return;
+    }
+
+    // Authentifié - afficher les infos utilisateur
+    const user = result.user;
+    document.getElementById('userInfo').style.display = 'block';
+    document.getElementById('userName').textContent = `${user.prenom} ${user.nom}`;
+
+    const roleLabels = {
+      'admin': 'Administrateur',
+      'agent': 'Agent',
+      'guest': 'Invité'
+    };
+    document.getElementById('userRole').textContent = roleLabels[user.role] || user.role;
+
+    // Stocker le CSRF token pour les requêtes futures
+    if (result.csrf_token) {
+      sessionStorage.setItem('noia_csrf_token', result.csrf_token);
+    }
+
+    // Gérer le bouton de déconnexion
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      if (!confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) return;
+
+      try {
+        await fetch('./api/auth/logout.php', {
+          method: 'POST',
+          credentials: 'include'
+        });
+      } catch (error) {
+        console.error('Erreur lors de la déconnexion:', error);
+      }
+
+      // Rediriger vers login
+      window.location.href = 'login.html';
+    });
+
+  } catch (error) {
+    console.error('Erreur lors de la vérification d\'authentification:', error);
+    // En cas d'erreur, rediriger vers login par sécurité
+    window.location.href = 'login.html';
+  }
+})();
+</script>
 
 <script src="script.js"></script>
 </body>
