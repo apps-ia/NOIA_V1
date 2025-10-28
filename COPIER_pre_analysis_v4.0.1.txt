@@ -1,7 +1,7 @@
 <?php
 /**
  * NOIA - Système de Pré-Analyse Intelligente
- * Version: 4.0.0 - Phase 2
+ * Version: 4.0.1 - Phase 2 (FIX tool_calls)
  *
  * Analyse la question AVANT l'appel OpenAI pour :
  * - Détecter les cas spéciaux (quorum, FCTVA, IFSE, M57, etc.)

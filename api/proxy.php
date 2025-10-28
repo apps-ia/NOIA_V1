@@ -547,7 +547,20 @@ CONSIGNES TECHNIQUES :
 
     // Extraire la réponse finale
     if (!isset($response_data['choices'][0]['message']['content'])) {
-        throw new Exception("Réponse OpenAI invalide");
+        // Diagnostic amélioré v4.0.1
+        $finish_reason = $response_data['choices'][0]['finish_reason'] ?? 'unknown';
+        $has_tool_calls = isset($response_data['choices'][0]['message']['tool_calls']);
+
+        $debug_info = "Réponse OpenAI sans content. ";
+        $debug_info .= "finish_reason: {$finish_reason}, ";
+        $debug_info .= "iterations: {$iteration}/{$max_iterations}, ";
+        $debug_info .= "has_tool_calls: " . ($has_tool_calls ? 'oui' : 'non');
+
+        if ($iteration >= $max_iterations && $has_tool_calls) {
+            throw new Exception("Trop d'appels de fonctions consécutifs (max: {$max_iterations})");
+        }
+
+        throw new Exception($debug_info);
     }
 
     // ========================================================================
