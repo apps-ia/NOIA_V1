@@ -1,0 +1,49 @@
+# Fichiers de configuration sensibles
+.env
+config/config.php
+
+# Logs
+*.log
+logs/
+error_log
+
+# Fichiers temporaires
+*.tmp
+tmp/
+temp/
+
+# Uploads utilisateurs
+uploads/
+storage/
+
+# Cache
+cache/
+*.cache
+
+# Dépendances
+vendor/
+node_modules/
+
+# Fichiers IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Sauvegardes
+*.bak
+*.backup
+*.sql.gz
+
+# Fichiers de sessions PHP
+sessions/
+tmp/sess_*
+
+# Rate limiting
+rate_limit.json
