@@ -40,7 +40,7 @@ try {
 
             // Sauvegarder en base
             $stmt = $db->prepare("
-                INSERT INTO conversations (user_id, thread_id, created_at)
+                INSERT INTO noia_conversations (user_id, thread_id, created_at)
                 VALUES (?, ?, NOW())
             ");
             $stmt->execute([$user['id'], $threadId]);
@@ -104,7 +104,7 @@ try {
             // Récupérer les conversations de l'utilisateur
             $stmt = $db->prepare("
                 SELECT id, thread_id, created_at
-                FROM conversations
+                FROM noia_conversations
                 WHERE user_id = ?
                 AND created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
                 ORDER BY created_at DESC

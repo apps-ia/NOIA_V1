@@ -18,7 +18,7 @@ class Auth {
     public function login($email, $password) {
         $stmt = $this->db->prepare("
             SELECT id, email, nom, prenom, password_hash
-            FROM users
+            FROM noia_users
             WHERE email = ? AND is_active = 1
         ");
         $stmt->execute([$email]);
@@ -32,7 +32,7 @@ class Auth {
             $_SESSION['user_prenom'] = $user['prenom'];
 
             // Mettre à jour last_login
-            $stmt = $this->db->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
+            $stmt = $this->db->prepare("UPDATE noia_users SET last_login = NOW() WHERE id = ?");
             $stmt->execute([$user['id']]);
 
             return true;
@@ -78,7 +78,7 @@ class Auth {
     public function checkRateLimit($userId) {
         $stmt = $this->db->prepare("
             SELECT COUNT(*) as count
-            FROM conversations
+            FROM noia_conversations
             WHERE user_id = ?
             AND created_at > DATE_SUB(NOW(), INTERVAL ? SECOND)
         ");
