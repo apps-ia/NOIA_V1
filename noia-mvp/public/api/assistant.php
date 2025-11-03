@@ -3,7 +3,6 @@
  * NOIA MVP - Assistant API
  */
 
-session_start();
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../src/Auth/Auth.php';
 require_once __DIR__ . '/../../src/Assistant/AssistantManager.php';
